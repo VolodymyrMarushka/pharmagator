@@ -1,11 +1,8 @@
 package com.eleks.academy.pharmagator.controllers;
 
-import com.eleks.academy.pharmagator.dto.PharmacyDto;
 import com.eleks.academy.pharmagator.entities.Pharmacy;
-import com.eleks.academy.pharmagator.mapper.PharmacyMapper;
-import com.eleks.academy.pharmagator.repositories.PharmacyRepository;
+import com.eleks.academy.pharmagator.services.PharmacyService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -25,40 +22,34 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/pharmacies")
 public class PharmacyController {
-	private final PharmacyRepository pharmacyRepository;
-	private final PharmacyMapper pharmacyMapper;
+	private final PharmacyService pharmacyService;
 
 	@GetMapping
-	public ResponseEntity<List<PharmacyDto>> getAll() {
-		return ResponseEntity.ok(pharmacyMapper.convertListPharmacyToPharmacyDto(pharmacyRepository.findAll()));
+	public ResponseEntity<List<Pharmacy>> getAll() {
+		return ResponseEntity.ok(pharmacyService.getAll());
 	}
 
 	@PostMapping()
-	public ResponseEntity<PharmacyDto> create(@RequestBody PharmacyDto pharmacyDto) {
-		Pharmacy pharmacy = pharmacyMapper.convertPharmacyDtoToPharmacy(pharmacyDto);
-		return new ResponseEntity<>(pharmacyMapper.convertPharmacyToPharmacyDto(pharmacyRepository.save(pharmacy)), HttpStatus.CREATED);
+	public ResponseEntity<Pharmacy> create(@RequestBody Pharmacy pharmacy) {
+		if (pharmacy.getName() == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Empty pharmacy name!");
+		}
+		return new ResponseEntity<>(pharmacyService.create(pharmacy), HttpStatus.CREATED);
 	}
 
-	@GetMapping("/{id}")
-	public ResponseEntity<PharmacyDto> getById(@PathVariable Long id) {
-		return ResponseEntity.ok(pharmacyMapper.convertPharmacyToPharmacyDto(pharmacyRepository.findById(id).orElseThrow(() ->
-				new ResponseStatusException(HttpStatus.NOT_FOUND, "Pharmacy with id " + id + " not found!"))));
+	@GetMapping(value = "/{id}")
+	public ResponseEntity<Pharmacy> getById(@PathVariable Long id) {
+		return ResponseEntity.ok(pharmacyService.getById(id));
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<PharmacyDto> update(@PathVariable Long id, @RequestBody PharmacyDto pharmacy) {
-		Pharmacy excitingPharmacy = pharmacyRepository.findById(id).orElseThrow(() ->
-				new ResponseStatusException(HttpStatus.NOT_FOUND, "Pharmacy with id " + id + " not found!"));
-		BeanUtils.copyProperties(pharmacy, excitingPharmacy, "id");
-		return ResponseEntity.ok(pharmacyMapper.convertPharmacyToPharmacyDto(pharmacyRepository.save(excitingPharmacy)));
+	public ResponseEntity<Pharmacy> update(@PathVariable Long id, @RequestBody Pharmacy pharmacy) {
+		return ResponseEntity.ok(pharmacyService.update(id, pharmacy));
 	}
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable Long id) {
-		Pharmacy pharmacy = pharmacyRepository.findById(id).orElseThrow(() ->
-				new ResponseStatusException(HttpStatus.NOT_FOUND));
-		pharmacyRepository.delete(pharmacy);
+		pharmacyService.deleteById(id);
 	}
-
 }
